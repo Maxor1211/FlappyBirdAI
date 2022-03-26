@@ -2,7 +2,7 @@
 	import "../app.css";
 	import "flowbite/dist/flowbite.css";
 	import { Icon } from "@steeze-ui/svelte-icon";
-	import { Moon, Sun } from "@steeze-ui/iconic-free";
+	import { Moon, Sun, Code } from "@steeze-ui/iconic-free";
 
 	let light_visible;
 
@@ -59,16 +59,21 @@
 			on:click={toggle_dark_mode}
 			type="button"
 			class="text-slate-900 dark:text-slate-50 hover:bg-gray-100 
-		dark:hover:bg-gray-700 rounded-lg text-sm p-1 absolute right-2 top-2">
-			<Icon
-				src={Moon}
-				theme="solid"
-				class={light_visible ? "w-5 h-5 color-gray-900" : "hidden w-5 h-5 color-gray-900"} />
-			<Icon
-				src={Sun}
-				theme="solid"
-				class={light_visible ? "hidden w-5 h-5 color-gray-900" : "w-5 h-5 color-gray-900"} />
+		dark:hover:bg-gray-700 rounded-lg text-sm p-1px absolute right-2 top-2">
+			<Icon src={Moon} theme="solid" class={light_visible ? "h-8" : "hidden h-8"} />
+			<Icon src={Sun} theme="solid" class={light_visible ? "hidden h-8" : "h-8"} />
 		</button>
+		<a
+			href="https://www.github.com/y-almannaee/is-it-real"
+			class="text-slate-900 dark:text-slate-50 hover:bg-gray-100 
+		dark:hover:bg-gray-700 rounded-lg text-sm p-1px absolute right-11 top-2"
+			><Icon src={Code} theme="solid" class="h-8" />
+			<span class="flex absolute top-0.5 right-0.5 h-2 w-2">
+				<span
+					class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 dark:bg-sky-400 opacity-75" />
+				<span class="relative inline-flex rounded-full h-2 w-2 bg-rose-600 dark:bg-sky-500" />
+			</span>
+		</a>
 	</header>
 
 	<main class="mb-auto">
@@ -79,19 +84,19 @@
 		<span class="text-sm text-gray-500 sm:text-center dark:text-gray-400">
 			© 2022 <a
 				href="https://yaseen.ae"
-				class="font-semibold text-gray-700 dark:text-gray-300 hover:underline decoration-indigo-500 decoration-2"
+				class="font-semibold text-gray-700 dark:text-gray-300 hover:underline decoration-rose-700 dark:decoration-sky-500 decoration-2"
 				>Yaseen AlMannaee</a>
 			<br /> Built with
 			<a
-				class="font-semibold text-gray-700 dark:text-gray-300 hover:underline decoration-indigo-500 decoration-2"
+				class="font-semibold text-gray-700 dark:text-gray-300 hover:underline decoration-rose-700 dark:decoration-sky-500 decoration-2"
 				href="https://kit.svelte.dev">SvelteKit</a
 			>,
 			<a
-				class="font-semibold text-gray-700 dark:text-gray-300 hover:underline decoration-indigo-500 decoration-2"
+				class="font-semibold text-gray-700 dark:text-gray-300 hover:underline decoration-rose-700 dark:decoration-sky-500 decoration-2"
 				href="https://tailwindcss.com">TailwindCSS</a
 			>, and
 			<a
-				class="font-semibold text-gray-700 dark:text-gray-300 hover:underline decoration-indigo-500 decoration-2"
+				class="font-semibold text-gray-700 dark:text-gray-300 hover:underline decoration-rose-700 dark:decoration-sky-500 decoration-2"
 				href="https://flowbite.com">FlowbiteJS</a>
 		</span>
 		<!-- <ul class="flex flex-wrap items-center mt-3 text-sm text-gray-500 dark:text-gray-400 sm:mt-0">

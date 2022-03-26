@@ -20,7 +20,6 @@ const config = {
     },
 
     plugins: [
-        require('flowbite/plugin'),
         require('@tailwindcss/forms'),
         function({ addBase, theme }) {
             function extractColorVars(colorObj, colorGroup = '') {
