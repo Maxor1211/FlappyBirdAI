@@ -1,22 +1,28 @@
-<script>
+<script lang="ts">
 	import { Icon } from "@steeze-ui/svelte-icon";
 	import { Search, EmojiSad, Close, Settings } from "@steeze-ui/iconic-free";
 
-	let classifier = undefined,
-		url = undefined,
+	let	request_url = "",
 		disabled = false,
 		modal = 52,
 		hidden = true;
 
 	let classifiers = [
-		{ id: 0, disp_name: "Decision Tree", active: true },
-		{ id: 1, disp_name: "Naive Bayes", active: false },
-		{ id: 2, disp_name: "K-Nearest Neighbours", active: false },
-		{ id: 3, disp_name: "Support Vector Machine", active: false, disabled: true }
+		{ id: 0, req_name: "dtree", disp_name: "Decision Tree", active: true },
+		{ id: 1, req_name: "nb", disp_name: "Naive Bayes", active: false },
+		{ id: 2, req_name: "knn", disp_name: "K-Nearest Neighbours", active: false },
+		{ id: 3, req_name: "svm", disp_name: "Support Vector Machine", active: false, disabled: true }
 	];
 
 	async function get_result() {
-		const res = await fetch(`/api/${classifier}/${url}`);
+		let classifier = [];
+		for(const cfer of classifiers) {
+			if(cfer.active)
+			classifier.push(cfer.req_name);
+		}
+		const url = `/api/${classifier.join(',')}/${encodeURIComponent(request_url)}`;
+		console.log(url);
+		const res = await fetch(url);
 		const res_json = await res.json();
 		if (res.ok) {
 			return res_json;
@@ -34,6 +40,8 @@
 
 <label class="relative text-gray-400 focus-within:text-gray-600 block mx-auto w-5/6 md:w-2/3">
 	<input
+		bind:value="{request_url}"
+		on:click="{()=>{request_url=""}}"
 		placeholder="Enter a news article URL..."
 		class="form-input rounded-xl appearance-none w-full focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 placeholder:italic placeholder:text-slate-400 focus:placeholder:text-gray-600" />
 	<Icon
@@ -55,33 +63,33 @@
 		}, 700);
 	}}>
 	<div
-		class="relative p-4 mx-auto will-change-transform transition-transform translate-y-{modal} duration-1000 w-full max-w-md h-full md:h-auto">
+		class="relative p-4 mx-auto mt-16 will-change-transform transition-transform translate-y-{modal} duration-1000 w-full max-w-md h-full md:h-auto">
 		<div class="relative px-6 py-6 lg:px-8 xl:py-8 bg-white rounded-lg shadow dark:bg-gray-700">
 			<div class="flex justify-end mb-4">
-				<h3 class="text-xl font-medium text-gray-900 dark:text-white">
+				<h3 class="text-xl font-medium text-gray-900 dark:text-white w-fit">
 					Modify machine learning settings
 				</h3>
 				<button
 					type="button"
-					class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-800 dark:hover:text-white"
+					class="w-8 h-8 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-800 dark:hover:text-white"
 					on:click={() => {
 						modal = 52;
 						setTimeout(() => {
 							hidden = true;
 						}, 700);
 					}}>
-					<Icon src={Close} class="h-5" />
+					<Icon src={Close} class="h-5 w-5" />
 				</button>
 			</div>
 			<form class="mb-4 space-y-6" action="#">
 				<div class="grid grid-cols-1 gap-2">
 					{#each classifiers as cfer (cfer.id)}
 						<div class:opacity-20={cfer.disabled}>
-							<label class="text-gray-500 dark:text-gray-400 text-lg">
+							<label class="text-gray-500 dark:text-gray-400 text-lg select-none">
 								<input
 									disabled={cfer.disabled}
-									class=" text-rose-600 dark:text-sky-600 form-checkbox appearance-none rounded-full h-6 w-6 disabled:cursor-not-allowed mr-1"
 									type="checkbox"
+									class="form-checkbox text-rose-600 dark:text-sky-600 appearance-none rounded-full h-6 w-6 disabled:cursor-not-allowed mr-1"
 									value=""
 									bind:checked="{cfer.active}" />
 								{cfer.disp_name}
@@ -127,7 +135,7 @@
 	disabled:hover:scale-100 disabled:cursor-not-allowed 
 	focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800
 	rounded-lg text-lg px-5 py-2.5 text-center"
-	on:click={()=>console.log(classifiers)}>Check</button>
+	on:click={get_result}>Check</button>
 </div>
 
 {#await promise}

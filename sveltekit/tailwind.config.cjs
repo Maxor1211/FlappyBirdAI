@@ -19,8 +19,13 @@ const config = {
         }
     },
 
+    corePlugins: {
+        aspectRatio: false,
+    },
+
     plugins: [
         require('@tailwindcss/forms'),
+        require('@tailwindcss/aspect-ratio'),
         function({ addBase, theme }) {
             function extractColorVars(colorObj, colorGroup = '') {
                 return Object.keys(colorObj).reduce((vars, colorKey) => {
