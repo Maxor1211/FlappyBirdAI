@@ -41,12 +41,15 @@
 	}
 </script>
 
-<svelte:head
-	><link rel="preconnect" href="https://fonts.googleapis.com" />
+<svelte:head>
+	<title>is it real.ml</title>
+    <meta name="description" content="Check if an article is real using machine learning models — By Yaseen AlMannaee" />
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 	<link
 		href="https://fonts.googleapis.com/css2?family=Lemon&display=swap"
-		rel="stylesheet" /></svelte:head>
+		rel="stylesheet" />
+</svelte:head>
 
 <div class="flex flex-col h-screen justify-between">
 	<header class="mx-auto text-center mt-16 mb-10 md:mt-8">
