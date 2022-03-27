@@ -1,3 +1,4 @@
+from aiohttp import web
 from newspaper import Article
 from train import create_classifiers
 from pathlib import Path
@@ -40,8 +41,18 @@ def real_or_fake(url=None, title=None, text=None):
 	print(text_dataset_classifier.predict(title, text))
 
 
-# test cases
-url = "https://www.theonion.com/celebrities-explain-how-they-are-helping-ukraine-1848695261"
-title = "EU's Tusk says ready to ramp up sanctions against North Korea"
-text = "BRUSSELS (Reuters) - The European Union is prepared to ramp up sanctions against North Korea after it conducted its sixth and most powerful nuclear test on Sunday, European Council President Donald Tusk said.  The EU stands ready to sharpen its policy of sanctions and invites North Korea to restart dialogue on its programers without condition,  Tusk said in a statement.  We call on the UN Security Council to adopt further UN sanctions and show stronger resolve to achieve a peaceful decentralization of the Korean peninsula. The stakes are getting too high."
-real_or_fake(title=title, text=text)
+# # test cases
+# url = "https://www.theonion.com/celebrities-explain-how-they-are-helping-ukraine-1848695261"
+# title = "EU's Tusk says ready to ramp up sanctions against North Korea"
+# text = "BRUSSELS (Reuters) - The European Union is prepared to ramp up sanctions against North Korea after it conducted its sixth and most powerful nuclear test on Sunday, European Council President Donald Tusk said.  The EU stands ready to sharpen its policy of sanctions and invites North Korea to restart dialogue on its programers without condition,  Tusk said in a statement.  We call on the UN Security Council to adopt further UN sanctions and show stronger resolve to achieve a peaceful decentralization of the Korean peninsula. The stakes are getting too high."
+# real_or_fake(title=title, text=text)
+
+routes = web.RouteTableDef()
+
+@routes.get('/')
+async def default_route(request):
+	return web.json_response({'message':'Nothing is currently implemented. Come back later!'}, status=400)
+
+app = web.Application()
+app.add_routes(routes)
+web.run_app(port=3636)
