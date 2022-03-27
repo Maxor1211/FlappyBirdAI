@@ -7,7 +7,7 @@
 		modal = 52,
 		hidden = true;
 
-	let classifiers = [
+	const classifiers = [
 		{ id: 0, req_name: "dtree", disp_name: "Decision Tree", active: true },
 		{ id: 1, req_name: "nb", disp_name: "Naive Bayes", active: false },
 		{ id: 2, req_name: "knn", disp_name: "K-Nearest Neighbours", active: false },
@@ -89,7 +89,8 @@
 								<input
 									disabled={cfer.disabled}
 									type="checkbox"
-									class="form-checkbox text-rose-600 dark:text-sky-600 appearance-none rounded-full h-6 w-6 disabled:cursor-not-allowed mr-1"
+									class="form-checkbox text-rose-600 dark:text-sky-600 appearance-none rounded-full h-6 w-6
+									disabled:cursor-not-allowed mr-1 hover:ring-4"
 									value=""
 									bind:checked="{cfer.active}" />
 								{cfer.disp_name}
