@@ -23,11 +23,11 @@
 		const url = `/api/${classifier.join(',')}/${encodeURIComponent(request_url)}`;
 		console.log(url);
 		const res = await fetch(url);
-		const res_json = await res.json();
 		if (res.ok) {
+			const res_json = await res.json();
 			return res_json;
 		} else {
-			throw new Error(res_json);
+			throw new Error(await res.text());
 		}
 	}
 
