@@ -50,6 +50,7 @@
 			data = false;
 		}
 		console.log(data);
+		results = data;
 	});
 </script>
 
