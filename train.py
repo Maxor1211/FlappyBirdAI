@@ -106,7 +106,7 @@ Once it reaches the actual text content it will slow down
 	# if 1 then the tuple decodes to (nb,)
 	# if 2 then the tuple decodes to (knn, k_neighbours, weights, p_minkowski)
 	# if 3 then the tuple decodes to (svm)
-	def train(self, classifier=(0, "entropy", 12, 40), train_anew=False, percent_for_test=0):
+	def train(self, classifier=(0, "entropy", 4, 200), train_anew=False, percent_for_test=0):
 		if percent_for_test != 0:
 			(X_train, X_test, y_train, y_test) = train_test_split(
 				self.x_preprocessed_tfidf, self._label, test_size=percent_for_test
@@ -115,24 +115,27 @@ Once it reaches the actual text content it will slow down
 			X_train = self.x_preprocessed_tfidf
 			y_train = self._label
 			X_test = y_test = None
-			if classifier[0] == 0:
-				# Decision tree
-				if train_anew or not Path(f"./.cache/dtree.pkl").is_file():
-					self.dtree = DecisionTreeClassifier(
-						criterion=classifier[1],
-						max_depth=classifier[2],
-						min_samples_leaf=classifier[3],
-					)
-					self.dtree.fit(X_train, y_train)
-					pickle_to_file("dtree", self.dtree)
-				else:
-					with open(Path(f"./.cache/dtree.pkl"), "rb") as file:
-						self.dtree = pickle.load(file)
-				sklearn.tree.plot_tree(self.dtree)
-				plt.savefig(Path("./.cache/graphics/tree.svg"))
-				print(self.dtree.score(X_train, y_train))
-				if X_test is not None and y_test is not None:
-					print(self.dtree.score(X_train, y_train))
+		if classifier[0] == 0:
+			# Decision tree
+			criterion = classifier[1]
+			max_depth = classifier[2]
+			min_samples_leaf = classifier[3]
+			if train_anew or not Path(f"./.cache/dtree.pkl").is_file():
+				self.dtree = DecisionTreeClassifier(
+					criterion=criterion,
+					max_depth=max_depth,
+					min_samples_leaf=min_samples_leaf,
+				)
+				self.dtree.fit(X_train, y_train)
+				pickle_to_file(f"dtree_{criterion}_{max_depth}_{min_samples_leaf}", self.dtree)
+			else:
+				with open(Path(f"./.cache/dtree_{criterion}_{max_depth}_{min_samples_leaf}.pkl"), "rb") as file:
+					self.dtree = pickle.load(file)
+			sklearn.tree.plot_tree(self.dtree)
+			plt.savefig(Path(f"./.cache/graphics/dtree_{criterion}_{max_depth}_{min_samples_leaf}.svg"))
+			print(self.dtree.score(X_train, y_train))
+			if X_test is not None and y_test is not None:
+				print(self.dtree.score(X_test, y_test))
 
 	def predict(self, title, text, classifiers=[0]):
 		df = pd.DataFrame(data={"title": [title], "text": [text]})
@@ -141,13 +144,13 @@ Once it reaches the actual text content it will slow down
 		out_2 = self._trans_2.transform(out_1)
 		result = []
 		if 0 in classifiers:
-			result.append(self.dtree.predict(out_2).pop())
+			result.append(self.dtree.predict(out_2))
 		if 1 in classifiers:
-			result.append(self.nb.predict(out_2).pop())
+			result.append(self.nb.predict(out_2))
 		if 3 in classifiers:
-			result.append(self.knn.predict(out_2).pop())
+			result.append(self.knn.predict(out_2))
 		if 4 in classifiers:
-			result.append(self.svm.predict(out_2).pop())
+			result.append(self.svm.predict(out_2))
 		return result
 
 

@@ -2,37 +2,76 @@
 	import { Icon } from "@steeze-ui/svelte-icon";
 	import { Search, EmojiSad, Close, Settings } from "@steeze-ui/iconic-free";
 
-	let	request_url = "",
+	let request_url = "",
 		disabled = false,
 		modal = 52,
 		hidden = true;
 
 	const classifiers = [
-		{ id: 0, req_name: "dtree", disp_name: "Decision Tree", active: true },
-		{ id: 1, req_name: "nb", disp_name: "Naive Bayes", active: false },
-		{ id: 2, req_name: "knn", disp_name: "K-Nearest Neighbours", active: false },
-		{ id: 3, req_name: "svm", disp_name: "Support Vector Machine", active: false, disabled: true }
+		{
+			id: 0,
+			req_name: "dtree",
+			disp_name: "Decision Tree",
+			options: { criterion: "entropy", max_depth: 5, min_samples_leaf: 4 },
+			active: true
+		},
+		{
+			id: 1,
+			req_name: "nb",
+			disp_name: "Naive Bayes",
+			options: { alpha: 0.5, type: "multinomial" },
+			active: false,
+			disabled: true
+		},
+		{
+			id: 2,
+			req_name: "knn",
+			disp_name: "K-Nearest Neighbours",
+			options: { k_neighbours: 4, weight: "uniform", power: 2 },
+			active: false,
+			disabled: true
+		},
+		{
+			id: 3,
+			req_name: "svm",
+			disp_name: "Support Vector Machine",
+			options: {},
+			active: false,
+			disabled: true
+		}
 	];
 
 	async function get_result() {
-		let classifier = [];
-		for(const cfer of classifiers) {
-			if(cfer.active)
-			classifier.push(cfer.req_name);
+		if (!request_url) {
+			return;
 		}
-		const url = `/api/${classifier.join(',')}/${encodeURIComponent(request_url)}`;
+		let classifier = [];
+		for (const cfer of classifiers) {
+			if (cfer.active) classifier.push(cfer.req_name);
+		}
+		const url = `http://192.168.1.35:3636/${classifier.join(",")}/${encodeURIComponent(
+			request_url
+		)}`;
 		console.log(url);
-		const res = await fetch(url);
+		const res = await fetch(url, {
+			method: "POST",
+			cache: "no-cache",
+			headers: {
+				"Content-Type": "application/json"
+			},
+			body: JSON.stringify(classifiers)
+		});
 		if (res.ok) {
 			const res_json = await res.json();
 			return res_json;
+		} else if (res.status == 400) {
+			throw new Error((await res.json()).message);
 		} else {
-			throw new Error(await res.text());
+			console.log(res)
+			throw new Error("The backend is not responding");
 		}
 	}
-
-	let promise = get_result();
-
+	let promise;
 	function handle_new_req() {
 		promise = get_result();
 	}
@@ -40,8 +79,10 @@
 
 <label class="relative text-gray-400 focus-within:text-gray-600 block mx-auto w-5/6 md:w-2/3">
 	<input
-		bind:value="{request_url}"
-		on:click="{()=>{request_url=""}}"
+		bind:value={request_url}
+		on:click={() => {
+			request_url = "";
+		}}
 		placeholder="Enter a news article URL..."
 		class="form-input rounded-xl appearance-none w-full focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 placeholder:italic placeholder:text-slate-400 focus:placeholder:text-gray-600" />
 	<Icon
@@ -63,7 +104,7 @@
 		}, 700);
 	}}>
 	<div
-		class="relative p-4 mx-auto mt-16 will-change-transform transition-transform translate-y-{modal} duration-1000 w-full max-w-md h-full md:h-auto">
+		class="relative p-4 mx-auto mt-16 will-change-transform transition-transform translate-y-{modal} duration-1000 w-full sm:max-w-md lg:max-w-2xl h-full md:h-auto">
 		<div class="relative px-6 py-6 lg:px-8 xl:py-8 bg-white rounded-lg shadow dark:bg-gray-700">
 			<div class="flex justify-end mb-4">
 				<h3 class="text-xl font-medium text-gray-900 dark:text-white w-fit">
@@ -82,19 +123,98 @@
 				</button>
 			</div>
 			<form class="mb-4 space-y-6" action="#">
-				<div class="grid grid-cols-1 gap-2">
+				<div class="grid grid-cols-1 lg:grid-cols-2 gap-2">
 					{#each classifiers as cfer (cfer.id)}
-						<div class:opacity-20={cfer.disabled}>
-							<label class="text-gray-500 dark:text-gray-400 text-lg select-none">
+						<div class:opacity-40={cfer.disabled} class="p-4 rounded-xl shadow-lg">
+							<label class="text-gray-600 dark:text-gray-200 text-lg select-none">
 								<input
 									disabled={cfer.disabled}
 									type="checkbox"
 									class="form-checkbox text-rose-600 dark:text-sky-600 appearance-none rounded-full h-6 w-6
 									disabled:cursor-not-allowed mr-1 hover:ring-4"
 									value=""
-									bind:checked="{cfer.active}" />
+									bind:checked={cfer.active} />
 								{cfer.disp_name}
 							</label>
+							<div class="relative grid grid-cols-1 text-gray-500 dark:text-gray-300 text-sm">
+								<div
+									class:hidden={cfer.active}
+									class="z-60 w-full h-full bg-slate-600/10 dark:bg-slate-900/30 blur-2xl absolute" />
+								{#if cfer.id == 0}
+									<label for="dtree_criterion"
+										>Impurity criterion
+										<select
+											bind:value={classifiers[0]["options"]["criterion"]}
+											class="text-xs w-24 inline-block rounded-lg"
+											name="dtree_criterion"
+											id="dtree_criterion">
+											<option value="entropy">Entropy</option>
+											<option value="gini">Gini</option>
+										</select>
+									</label>
+									<label class="py-1">
+										Max tree depth
+										<input
+											bind:value={classifiers[0]["options"]["max_depth"]}
+											type="number"
+											class="text-xs rounded-lg w-20" />
+									</label>
+									<label class="py-1">
+										Minimum samples at leaf node
+										<input
+											bind:value={classifiers[0]["options"]["min_samples_leaf"]}
+											type="number"
+											class="text-xs rounded-lg w-20" />
+									</label>
+								{/if}
+								{#if cfer.id == 1}
+									<label class="py-1">
+										Alpha
+										<input
+											bind:value={classifiers[1]["options"]["alpha"]}
+											type="number"
+											class="text-xs rounded-lg w-20" />
+									</label>
+									<label for="naive_bayes_type"
+										>Naive Bayes imlementation
+										<select
+											bind:value={classifiers[1]["options"]["type"]}
+											class="text-xs w-24 inline-block rounded-lg"
+											name="naive_bayes_type"
+											id="naive_bayes_type">
+											<option value="complement">Complement</option>
+											<option value="multinomial">Multinomial</option>
+										</select>
+									</label>
+								{/if}
+								{#if cfer.id == 2}
+									<label class="py-1">
+										K number of Neighbours
+										<input
+											bind:value={classifiers[2]["options"]["k_neighbours"]}
+											type="number"
+											class="text-xs rounded-lg w-20" />
+									</label>
+									<label for="knn_criterion"
+										>Weight criterion
+										<select
+											bind:value={classifiers[2]["options"]["weight"]}
+											class="text-xs w-24 inline-block rounded-lg"
+											name="knn_criterion"
+											id="knn_criterion">
+											<option value="uniform">Uniform</option>
+											<option value="distance">Distance</option>
+										</select>
+									</label>
+									<label class="py-1">
+										Minkowski power
+										<input
+											bind:value={classifiers[2]["options"]["power"]}
+											type="number"
+											class="text-xs rounded-lg w-20" />
+									</label>
+								{/if}
+							</div>
 						</div>
 					{/each}
 				</div>
@@ -136,7 +256,7 @@
 	disabled:hover:scale-100 disabled:cursor-not-allowed 
 	focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800
 	rounded-lg text-lg px-5 py-2.5 text-center"
-	on:click={get_result}>Check</button>
+		on:click={get_result}>Check</button>
 </div>
 
 {#await promise}
@@ -156,19 +276,19 @@
 		</svg>
 	</div>
 {:then result}
-	<p>Result</p>
-{:catch error}
-	{#if error.message.includes("JSON")}
-		<br />
+	{#if result === undefined}
+		<!--Not empty-->
 	{:else}
-		<div
-			class="flex p-2 mt-8 w-4/5 mx-auto md:w-1/3 text-red-700 bg-red-100 rounded-lg dark:bg-red-200 dark:text-red-800"
-			role="alert">
-			<Icon src={EmojiSad} class="inline flex-shrink-0 mr-3 -mt-0.5 w-8 h-8" />
-			<div>
-				<span class="font-medium">Error: {error.message}</span><br /> Check your URL, or try again later.
-			</div>
-		</div>
+		<p>{result}</p>
 	{/if}
+{:catch error}
+	<div
+		class="flex p-2 mt-8 w-4/5 mx-auto md:w-1/3 text-red-700 bg-red-100 rounded-lg dark:bg-red-200 dark:text-red-800"
+		role="alert">
+		<Icon src={EmojiSad} class="inline flex-shrink-0 mr-3 -mt-0.5 w-8 h-8" />
+		<div>
+			<span class="font-medium">Error: {error.message}</span><br /> Check your URL, or try again later.
+		</div>
+	</div>
 {/await}
 <br class="translate-y-52 opacity-0 opacity-100" />
