@@ -49,10 +49,14 @@ def real_or_fake(url=None, title=None, text=None):
 
 routes = web.RouteTableDef()
 
-@routes.get('/')
+@routes.get('/{slug}/{slug2}')
 async def default_route(request):
 	return web.json_response({'message':'Nothing is currently implemented. Come back later!'}, status=400)
 
+@routes.get('/')
+async def health(request):
+	return web.Response(text="OK")
+
 app = web.Application()
 app.add_routes(routes)
-web.run_app(port=3636)
+web.run_app(app,port=3636)
