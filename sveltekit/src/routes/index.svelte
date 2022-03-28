@@ -45,21 +45,18 @@
 		if (!request_url) {
 			return;
 		}
-		let classifier = [];
-		for (const cfer of classifiers) {
-			if (cfer.active) classifier.push(cfer.req_name);
+		const url = `/predict`
+		const body = {
+			classifiers: classifiers,
+			request_url: request_url
 		}
-		const url = `http://192.168.1.35:3636/${classifier.join(",")}/${encodeURIComponent(
-			request_url
-		)}`;
-		console.log(url);
 		const res = await fetch(url, {
 			method: "POST",
 			cache: "no-cache",
 			headers: {
 				"Content-Type": "application/json"
 			},
-			body: JSON.stringify(classifiers)
+			body: JSON.stringify(body)
 		});
 		if (res.ok) {
 			const res_json = await res.json();
@@ -71,7 +68,7 @@
 			throw new Error("The backend is not responding");
 		}
 	}
-	let promise;
+	let promise = get_result();
 	function handle_new_req() {
 		promise = get_result();
 	}

@@ -1,4 +1,5 @@
 import functools
+from json import JSONDecodeError
 from aiohttp import web
 from newspaper import Article
 from train import create_classifiers
@@ -39,7 +40,7 @@ def real_or_fake(url=None, title=None, text=None, classifiers=[0]):
 		(title, text) = get_article(url)
 	elif title == None and text == None and url == None:
 		raise ValueError("No URL or title or text provided. Can't proceed.")
-	result = int( text_dataset_classifier.predict(title, text)[0].item(0))
+	result = int(text_dataset_classifier.predict(title, text)[0].item(0))
 	if result == 0:
 		result = "FAKE"
 	else:
@@ -58,24 +59,26 @@ routes = web.RouteTableDef()
 app = web.Application()
 
 
-@routes.post("/{classifiers}/{article_url}")
+@routes.post("/predict")
 async def default_route(request):
-	data = await request.json()
+	try:
+		data = await request.json()
+	except JSONDecodeError:
+		return web.json_response({"message": "Malformed request"}, status=400)
 	print(data)
 	classifiers = []
 	for classifier in data:
 		if classifier.get("id", -1) != -1 and classifier.get("active", False) == True:
 			classifiers.append(classifier.get("id", -1))
-	(title,result) = await app.loop.run_in_executor(
+	(title, result) = await app.loop.run_in_executor(
 		None,
 		functools.partial(
 			real_or_fake, url=request.match_info["article_url"], classifiers=classifiers
 		),
 	)
 	print(result)
-	return web.json_response(
-		{"result": result, "title": title}, status=200
-	)
+	return web.json_response({"result": result, "title": title}, status=200)
+
 
 @routes.get("/")
 async def health(request):
