@@ -2,7 +2,8 @@
 	import "../app.css";
 	import "flowbite/dist/flowbite.css";
 	import { Icon } from "@steeze-ui/svelte-icon";
-	import { Moon, Sun, Code } from "@steeze-ui/iconic-free";
+	import { Moon, Sun } from "@steeze-ui/heroicons";
+	import { Code } from "@steeze-ui/iconic-free";
 
 	let light_visible;
 

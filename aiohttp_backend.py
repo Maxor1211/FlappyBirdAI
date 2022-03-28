@@ -40,12 +40,14 @@ def real_or_fake(url=None, title=None, text=None, classifiers=[0]):
 		(title, text) = get_article(url)
 	elif title == None and text == None and url == None:
 		raise ValueError("No URL or title or text provided. Can't proceed.")
-	result = int(text_dataset_classifier.predict(title, text)[0].item(0))
-	if result == 0:
-		result = "FAKE"
-	else:
-		result = "REAL"
-	return [title, result]
+	return_results = {}
+	results = text_dataset_classifier.predict(title, text, classifiers)
+	for i in range(len(results)):
+		return_results[classifiers[i]]=(int(results[i].item(0)))
+	for i in [0,1,2,3]:
+		if return_results.get(i,None) == None:
+			return_results[i] = -1
+	return [title, return_results]
 
 
 # # test cases
@@ -66,19 +68,27 @@ async def default_route(request):
 	except JSONDecodeError:
 		return web.json_response({"message": "Malformed request"}, status=400)
 	print(data)
-	request_url = data.get("request_url","")
+	request_url = data.get("request_url", "")
 	classifiers = []
-	for classifier in data.get("classifiers",[]):
+	for classifier in data.get("classifiers", []):
 		if classifier.get("id", -1) != -1 and classifier.get("active", False) == True:
 			classifiers.append(classifier.get("id", -1))
-	(title, result) = await app.loop.run_in_executor(
+	print(classifiers)
+	(title, results) = await app.loop.run_in_executor(
 		None,
-		functools.partial(
-			real_or_fake, url=request_url, classifiers=classifiers
-		),
+		functools.partial(real_or_fake, url=request_url, classifiers=classifiers),
 	)
-	print(result)
-	return web.json_response({"result": result, "title": title}, status=200)
+	print(request_url, results)
+	return web.json_response(
+		{
+			"result": results,
+			"title": title,
+			"request_url": request_url,
+			"request": data.get("classifiers", []),
+			"stats": [],
+		},
+		status=200,
+	)
 
 
 @routes.get("/")

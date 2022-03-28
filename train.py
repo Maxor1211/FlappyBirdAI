@@ -1,3 +1,4 @@
+from attr import has
 import pandas as pd
 from matplotlib import pyplot as plt
 from pathlib import Path
@@ -41,12 +42,12 @@ class text_data:
 	# Text should be array with first two items as follows:
 	# ['title', 'text']
 	def process_text(self, text):
-		return text
-		print(
-			f"Processed record {self._processed_rows} out of {self._total_rows} ({math.floor(self._processed_rows/self._total_rows*100)}%, {math.floor((time.time() - self._start_time)/(self._processed_rows+1) * (self._total_rows-self._processed_rows))} seconds left)",
-			end="\r",
-		)
-		self._processed_rows += 1
+		if hasattr(self, "_processed_rows"):
+			print(
+				f"Processed record {self._processed_rows} out of {self._total_rows} ({math.floor(self._processed_rows/self._total_rows*100)}%, {math.floor((time.time() - self._start_time)/(self._processed_rows+1) * (self._total_rows-self._processed_rows))} seconds left)",
+				end="\r",
+			)
+			self._processed_rows += 1
 		stemmed = self._stemmer.stem_sentence(text)
 		return self._lemmatizer.lemmatize_sentence(stemmed)
 
@@ -106,7 +107,9 @@ Once it reaches the actual text content it will slow down
 	# if 1 then the tuple decodes to (nb,)
 	# if 2 then the tuple decodes to (knn, k_neighbours, weights, p_minkowski)
 	# if 3 then the tuple decodes to (svm)
-	def train(self, classifier=(0, "entropy", 4, 200), train_anew=False, percent_for_test=0):
+	def train(
+		self, classifier=(0, "entropy", 4, 200), train_anew=False, percent_for_test=0
+	):
 		if percent_for_test != 0:
 			(X_train, X_test, y_train, y_test) = train_test_split(
 				self.x_preprocessed_tfidf, self._label, test_size=percent_for_test
@@ -120,22 +123,55 @@ Once it reaches the actual text content it will slow down
 			criterion = classifier[1]
 			max_depth = classifier[2]
 			min_samples_leaf = classifier[3]
-			if train_anew or not Path(f"./.cache/dtree.pkl").is_file():
+			pkl_stored_at = f"dtree_{criterion}_{max_depth}_{min_samples_leaf}"
+			if train_anew or not Path(f"./.cache/{pkl_stored_at}.pkl").is_file():
 				self.dtree = DecisionTreeClassifier(
 					criterion=criterion,
 					max_depth=max_depth,
 					min_samples_leaf=min_samples_leaf,
 				)
 				self.dtree.fit(X_train, y_train)
-				pickle_to_file(f"dtree_{criterion}_{max_depth}_{min_samples_leaf}", self.dtree)
+				pickle_to_file(f"{pkl_stored_at}", self.dtree)
 			else:
-				with open(Path(f"./.cache/dtree_{criterion}_{max_depth}_{min_samples_leaf}.pkl"), "rb") as file:
+				with open(Path(f"./.cache/{pkl_stored_at}.pkl"), "rb") as file:
 					self.dtree = pickle.load(file)
 			sklearn.tree.plot_tree(self.dtree)
-			plt.savefig(Path(f"./.cache/graphics/dtree_{criterion}_{max_depth}_{min_samples_leaf}.svg"))
-			print(self.dtree.score(X_train, y_train))
-			if X_test is not None and y_test is not None:
-				print(self.dtree.score(X_test, y_test))
+			plt.savefig(Path(f"./.cache/graphics/{pkl_stored_at}.svg"))
+			return [
+				self.dtree.score(X_train, y_train),
+				self.dtree.score(X_test, y_test)
+				if (X_test is not None and y_test is not None)
+				else 0,
+				[f"./.cache/graphics/{pkl_stored_at}.svg"],
+			]
+		elif classifier[0] == 1:
+			# Naive Bayes
+			pass
+		elif classifier[0] == 2:
+			# k-Nearest-Neighbours
+			n_neighbors = classifier[1]
+			weights = classifier[2]
+			power = classifier[3]
+			pkl_stored_at = f"knn_{n_neighbors}_{weights}_{power}"
+			if train_anew or not Path(f"./.cache/{pkl_stored_at}.pkl").is_file():
+				self.knn = KNeighborsClassifier(
+					n_neighbors=n_neighbors, weights=weights, p=power, n_jobs=-1
+				)
+				self.knn.fit(X_train, y_train)
+				pickle_to_file(f"{pkl_stored_at}", self.knn)
+			else:
+				with open(Path(f"./.cache/{pkl_stored_at}.pkl"), "rb") as file:
+					self.knn = pickle.load(file)
+			return [
+				0,#self.knn.score(X_train, y_train),
+				self.knn.score(X_test, y_test)
+				if (X_test is not None and y_test is not None)
+				else 0,
+				[],
+			]
+		elif classifier[0] == 3:
+			# SVM
+			pass
 
 	def predict(self, title, text, classifiers=[0]):
 		df = pd.DataFrame(data={"title": [title], "text": [text]})
@@ -147,9 +183,9 @@ Once it reaches the actual text content it will slow down
 			result.append(self.dtree.predict(out_2))
 		if 1 in classifiers:
 			result.append(self.nb.predict(out_2))
-		if 3 in classifiers:
+		if 2 in classifiers:
 			result.append(self.knn.predict(out_2))
-		if 4 in classifiers:
+		if 3 in classifiers:
 			result.append(self.svm.predict(out_2))
 		return result
 
@@ -167,7 +203,12 @@ def create_classifiers():
 	# with pd.option_context("display.max_columns", 20):
 	# 	print(combined_data._nlp_x.head(10))
 	combined_data.preprocess(combined_data._nlp_x)
-	combined_data.train(percent_for_test=0.25)
+	print("DTREE",combined_data.train(
+		classifier=(0, "entropy", 4, 200), train_anew=False, percent_for_test=0
+	))
+	print("KNN",combined_data.train(
+		classifier=(2, 20, "uniform", 2), train_anew=False, percent_for_test=0
+	))
 	return combined_data
 
 

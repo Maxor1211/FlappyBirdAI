@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { Icon } from "@steeze-ui/svelte-icon";
-	import { Search, EmojiSad, Close, Settings } from "@steeze-ui/iconic-free";
+	import { Search, EmojiSad, X, Cog } from "@steeze-ui/heroicons";
 
 	let request_url = "",
 		disabled = false,
 		modal = 52,
-		hidden = true;
+		hidden = true,
+		left_focus = false;
 
 	const classifiers = [
 		{
@@ -45,11 +46,11 @@
 		if (!request_url) {
 			return;
 		}
-		const url = `/api/predict`
+		const url = `/api/predict`;
 		const body = {
 			classifiers: classifiers,
 			request_url: request_url
-		}
+		};
 		const res = await fetch(url, {
 			method: "POST",
 			cache: "no-cache",
@@ -60,11 +61,12 @@
 		});
 		if (res.ok) {
 			const res_json = await res.json();
+			window.location.href=`/results#${btoa(res_json)}`;
 			return res_json;
 		} else if (res.status == 400) {
 			throw new Error((await res.json()).message);
 		} else {
-			console.log(res)
+			console.log(res);
 			throw new Error("The backend is not responding");
 		}
 	}
@@ -74,17 +76,24 @@
 	}
 </script>
 
-<label class="relative text-gray-400 focus-within:text-gray-600 block mx-auto w-5/6 md:w-2/3">
+<label class="relative text-gray-400 focus-within:text-gray-800 block mx-auto w-5/6 md:w-2/3">
 	<input
 		bind:value={request_url}
 		on:click={() => {
-			request_url = "";
+			if (left_focus) {
+				request_url = "";
+				left_focus = false;
+			}
+		}}
+		on:blur={() => {
+			left_focus = true;
 		}}
 		placeholder="Enter a news article URL..."
-		class="form-input rounded-xl appearance-none w-full focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 placeholder:italic placeholder:text-slate-400 focus:placeholder:text-gray-600" />
+		class="form-input text-lg px-8 h-14 rounded-xl appearance-none w-full focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 placeholder:italic placeholder:text-slate-400 focus:placeholder:text-gray-600" />
 	<Icon
 		src={Search}
-		class="w-8 h-8 pointer-events-none absolute top-1/2 transform -translate-y-1/2 right-3" />
+		theme="solid"
+		class="w-8 h-8 pointer-events-none absolute top-1/2 transform -translate-y-1/2 right-6" />
 </label>
 
 <div
@@ -116,7 +125,7 @@
 							hidden = true;
 						}, 700);
 					}}>
-					<Icon src={Close} class="h-5 w-5" />
+					<Icon src={X} class="h-5 w-5" />
 				</button>
 			</div>
 			<form class="mb-4 space-y-6" action="#">
@@ -238,7 +247,7 @@
 				modal = 0;
 			}, 50);
 		}}>
-		<Icon src={Settings} class="h-8" />
+		<Icon src={Cog} theme="solid" class="h-8" />
 	</button>
 
 	<button
@@ -253,7 +262,7 @@
 	disabled:hover:scale-100 disabled:cursor-not-allowed 
 	focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800
 	rounded-lg text-lg px-5 py-2.5 text-center"
-		on:click={get_result}>Check</button>
+		on:click={handle_new_req}>Check</button>
 </div>
 
 {#await promise}
@@ -276,7 +285,9 @@
 	{#if result === undefined}
 		<!--Not empty-->
 	{:else}
-		<p>{result}</p>
+		<div class="mx-auto block w-fit mt-12 text-slate-800 italic dark:text-slate-200 font-bold">
+			Loading results page...
+		</div>
 	{/if}
 {:catch error}
 	<div
@@ -284,7 +295,8 @@
 		role="alert">
 		<Icon src={EmojiSad} class="inline flex-shrink-0 mr-3 -mt-0.5 w-8 h-8" />
 		<div>
-			<span class="font-medium">Error: {error.message}</span><br /> Check your URL, or try again later.
+			<span class="font-medium">Error: {error.message}</span><br /> Check your submission or try again
+			later.
 		</div>
 	</div>
 {/await}
