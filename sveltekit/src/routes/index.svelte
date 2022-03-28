@@ -62,7 +62,7 @@
 		});
 		if (res.ok) {
 			const res_json = await res.json();
-			window.location.href=`/results#${btoa(res_json)}`;
+			window.location.href=`/results#${btoa(JSON.stringify(res_json))}`;
 			return res_json;
 		} else if (res.status == 400) {
 			throw new Error((await res.json()).message);
