@@ -14,7 +14,8 @@
 			req_name: "dtree",
 			disp_name: "Decision Tree",
 			options: { criterion: "entropy", max_depth: 5, min_samples_leaf: 4 },
-			active: true
+			active: true,
+			disabled: false
 		},
 		{
 			id: 1,
@@ -30,7 +31,7 @@
 			disp_name: "K-Nearest Neighbours",
 			options: { k_neighbours: 4, weight: "uniform", power: 2 },
 			active: false,
-			disabled: true
+			disabled: false
 		},
 		{
 			id: 3,
