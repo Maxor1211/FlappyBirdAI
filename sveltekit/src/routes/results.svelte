@@ -73,9 +73,6 @@
 						<div>
 							{cfer.disp_name}
 						</div>
-						<div>
-							{cfer.options}
-						</div>
 					</div>
 				{/if}
 			{/each}
