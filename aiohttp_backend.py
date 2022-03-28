@@ -66,8 +66,9 @@ async def default_route(request):
 	except JSONDecodeError:
 		return web.json_response({"message": "Malformed request"}, status=400)
 	print(data)
+	request_url = data.get("request_url","")
 	classifiers = []
-	for classifier in data:
+	for classifier in data.get("classifiers",[]):
 		if classifier.get("id", -1) != -1 and classifier.get("active", False) == True:
 			classifiers.append(classifier.get("id", -1))
 	(title, result) = await app.loop.run_in_executor(
