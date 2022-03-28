@@ -74,7 +74,7 @@ async def default_route(request):
 	(title, result) = await app.loop.run_in_executor(
 		None,
 		functools.partial(
-			real_or_fake, url=request.match_info["article_url"], classifiers=classifiers
+			real_or_fake, url=request_url, classifiers=classifiers
 		),
 	)
 	print(result)

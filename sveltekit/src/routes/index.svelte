@@ -45,7 +45,7 @@
 		if (!request_url) {
 			return;
 		}
-		const url = `/predict`
+		const url = `/api/predict`
 		const body = {
 			classifiers: classifiers,
 			request_url: request_url
