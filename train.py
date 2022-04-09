@@ -12,7 +12,6 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.compose import make_column_transformer
 from sklearn.model_selection import train_test_split
 
-from multiprocessing import Pool, Value
 from helpers import pickle_to_file, file_has_changed
 from helpers import Lemmatizer
 from helpers import Stemmer
@@ -103,13 +102,17 @@ Once it reaches the actual text content it will slow down
 
 	# Classifiers are numbered based on their ID in the website
 	# 0 = dtree, 1 = naive_bayes, 2 = KNN, 3 = SVM
-	# if 0 then the tuple decodes to (dtree, criterion, max_depth, min_samples_leaf)
+	# if 0 then the tuple decodes to (dtree, criterion, max_depth, min_samples_leaf, min_samples_split)
 	# if 1 then the tuple decodes to (nb,)
 	# if 2 then the tuple decodes to (knn, k_neighbours, weights, p_minkowski)
 	# if 3 then the tuple decodes to (svm)
 	def train(
-		self, classifier=(0, "entropy", 4, 200), train_anew=False, percent_for_test=0
+		self, classifier=(0, "entropy", 4, 1000, 1000), train_anew=False, percent_for_test=0
 	):
+
+	# TODO: TAKE ADVANTAGE OF THE CONSISTENT API IN SKLEARN
+
+
 		if percent_for_test != 0:
 			(X_train, X_test, y_train, y_test) = train_test_split(
 				self.x_preprocessed_tfidf, self._label, test_size=percent_for_test
@@ -123,11 +126,13 @@ Once it reaches the actual text content it will slow down
 			criterion = classifier[1]
 			max_depth = classifier[2]
 			min_samples_leaf = classifier[3]
+			min_samples_split = classifier[4]
 			pkl_stored_at = f"dtree_{criterion}_{max_depth}_{min_samples_leaf}"
 			if train_anew or not Path(f"./.cache/{pkl_stored_at}.pkl").is_file():
 				self.dtree = DecisionTreeClassifier(
 					criterion=criterion,
 					max_depth=max_depth,
+					min_samples_split=min_samples_split,
 					min_samples_leaf=min_samples_leaf,
 				)
 				self.dtree.fit(X_train, y_train)
