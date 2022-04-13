@@ -4,13 +4,14 @@
 
 ## Training
 
-To get the datasets and the code you may run
+To get the datasets, dependencies, and code you may run
 
 ```
 git clone https://github.com/y-almannaee/is-it-real
+pip3 install -r requirements.txt
 ```
 
-If you are running on Linux/MacOS, you must set the environment variable for NLTK_DATA to point to where the nltk data is.
+If you are running on Linux/MacOS, you must set the environment variable for NLTK_DATA to point to where the nltk data is. On Windows, this needs to be done by editing the PATH by opening System &#8594; Advanced System Settings &#8594; Environment Variables &#8594; Path &#8594; Edit 
 
 When running on Linux, from the command line you may invoke the following command
 
@@ -22,9 +23,9 @@ Trained models, corpora, processed text, etc. are stored in a .cache directory, 
 
 ## Website backend
 
-To run on Ubuntu we need to do 
+To be able to run on Ubuntu we need to do 
 
 ```
 sudo apt install python3-pip python-dev libxml2-dev libxslt-dev
-pip3 install newspaper3k
+pip3 install -r requirements.txt
 ```
