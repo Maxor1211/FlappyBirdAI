@@ -1,4 +1,4 @@
-import functools
+import functools, asyncio
 from json import JSONDecodeError
 from aiohttp import web
 from newspaper import Article
@@ -8,26 +8,6 @@ from pathlib import Path
 text_dataset_classifier = create_classifiers()
 
 
-def retrain_dtree(criterion="entropy", max_depth=12, min_samples_leaf=40):
-	pass
-
-
-def retrain_cnb():
-	pass
-
-
-def retrain_mnb():
-	pass
-
-
-def retrain_knn():
-	pass
-
-
-def retrain_svm():
-	pass
-
-
 def get_article(url):
 	article = Article(url)
 	article.download()
@@ -35,27 +15,33 @@ def get_article(url):
 	return [article.title, article.text]
 
 
-def real_or_fake(url=None, title=None, text=None, classifiers=[0]):
+def real_or_fake(url=None, title=None, text=None, classifiers=[0], train_req=None):
 	if title == None and text == None and url != None:
 		(title, text) = get_article(url)
 	elif title == None and text == None and url == None:
 		raise ValueError("No URL or title or text provided. Can't proceed.")
+	for item in train_req:
+		id = item.get("id",-1)
+		opts = item.get("options", {})
+		if id in classifiers:
+			if id == 0:
+				clfer = (0, opts.get("criterion","entropy"), opts.get("max_depth",5), opts.get("min_samples_leaf",1000), opts.get("min_samples_split",1000) )
+			elif id == 1:
+				clfer = (1, opts.get("type","multinomial"), opts.get("alpha",0.5) )
+			elif id == 2:
+				clfer = (2, opts.get("k_neighbours",4), opts.get("weight","uniform"), opts.get("power", 2) )
+			elif id == 3:
+				clfer = (3, opts.get("param_c", 1), opts.get("kernel","linear"), opts.get("degree",2) )
+			text_dataset_classifier.train(classifier=clfer)
 	return_results = {}
 	results = text_dataset_classifier.predict(title, text, classifiers)
 	for i in range(len(results)):
-		return_results[classifiers[i]]=(int(results[i].item(0)))
-	for i in [0,1,2,3]:
-		if return_results.get(i,None) == None:
+		return_results[classifiers[i]] = int(results[i].item(0))
+	for i in [0, 1, 2, 3]:
+		if return_results.get(i, None) == None:
 			return_results[i] = -1
 	return [title, return_results]
 
-
-# # test cases
-# url = "https://www.theonion.com/celebrities-explain-how-they-are-helping-ukraine-1848695261" #this returns fake
-# title = "EU's Tusk says ready to ramp up sanctions against North Korea"
-# text = "BRUSSELS (Reuters) - The European Union is prepared to ramp up sanctions against North Korea after it conducted its sixth and most powerful nuclear test on Sunday, European Council President Donald Tusk said.  The EU stands ready to sharpen its policy of sanctions and invites North Korea to restart dialogue on its programers without condition,  Tusk said in a statement.  We call on the UN Security Council to adopt further UN sanctions and show stronger resolve to achieve a peaceful decentralization of the Korean peninsula. The stakes are getting too high."
-# the above is from the real dataset, so it returns true, mostly
-#  real_or_fake(title=title, text=text)
 
 routes = web.RouteTableDef()
 app = web.Application()
@@ -74,13 +60,20 @@ async def default_route(request):
 		if classifier.get("id", -1) != -1 and classifier.get("active", False) == True:
 			classifiers.append(classifier.get("id", -1))
 	print(classifiers)
-	(title, results) = await app.loop.run_in_executor(
-		None,
-		functools.partial(real_or_fake, url=request_url, classifiers=classifiers),
-	)
+	try:
+		(title, results) = await asyncio.wait_for(asyncio.shield(asyncio.get_running_loop().run_in_executor(
+			None,
+			functools.partial(real_or_fake, url=request_url, classifiers=classifiers, train_req=data.get("classifiers", [])),
+		)),timeout=80)
+	except asyncio.TimeoutError:
+		return web.json_response(
+			{"status": "scheduled"},
+			status=200,
+		)
 	print(request_url, results)
 	return web.json_response(
 		{
+			"status": "processed",
 			"result": results,
 			"title": title,
 			"request_url": request_url,
@@ -89,6 +82,7 @@ async def default_route(request):
 		},
 		status=200,
 	)
+		
 
 
 @routes.get("/")

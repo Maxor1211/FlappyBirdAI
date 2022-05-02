@@ -1,5 +1,7 @@
 # Detecting fake news using various machine learning techniques (and a pretty website 😇)
 
+# Try it here: https://is-it-real.ml
+
 
 
 ## Training

@@ -1,16 +1,18 @@
-from attr import has
 import pandas as pd
 from matplotlib import pyplot as plt
 from pathlib import Path
 import math, pickle, time
 
 import sklearn
+from sklearn import svm
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import ComplementNB, MultinomialNB
+from sklearn.svm import SVC
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.compose import make_column_transformer
 from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
 
 from helpers import pickle_to_file, file_has_changed
 from helpers import Lemmatizer
@@ -103,80 +105,93 @@ Once it reaches the actual text content it will slow down
 	# Classifiers are numbered based on their ID in the website
 	# 0 = dtree, 1 = naive_bayes, 2 = KNN, 3 = SVM
 	# if 0 then the tuple decodes to (dtree, criterion, max_depth, min_samples_leaf, min_samples_split)
-	# if 1 then the tuple decodes to (nb,)
+	# if 1 then the tuple decodes to (nb, type, alpha)
 	# if 2 then the tuple decodes to (knn, k_neighbours, weights, p_minkowski)
-	# if 3 then the tuple decodes to (svm)
+	# if 3 then the tuple decodes to (svm, c, kernel, degree)
 	def train(
-		self, classifier=(0, "entropy", 4, 1000, 1000), train_anew=False, percent_for_test=0
+		self, classifier=(0, "entropy", 4, 1000, 1000), train_anew=False, percent_for_test=0, score_res=False
 	):
-
-	# TODO: TAKE ADVANTAGE OF THE CONSISTENT API IN SKLEARN
-
-
 		if percent_for_test != 0:
 			(X_train, X_test, y_train, y_test) = train_test_split(
 				self.x_preprocessed_tfidf, self._label, test_size=percent_for_test
 			)
 		else:
-			X_train = self.x_preprocessed_tfidf
-			y_train = self._label
+			# X_train = self.x_preprocessed_tfidf
+			# y_train = self._label
+			X_train, y_train = shuffle(self.x_preprocessed_tfidf, self._label, n_samples=10000)
 			X_test = y_test = None
+		
+		graphics = []
 		if classifier[0] == 0:
 			# Decision tree
 			criterion = classifier[1]
-			max_depth = classifier[2]
-			min_samples_leaf = classifier[3]
-			min_samples_split = classifier[4]
-			pkl_stored_at = f"dtree_{criterion}_{max_depth}_{min_samples_leaf}"
-			if train_anew or not Path(f"./.cache/{pkl_stored_at}.pkl").is_file():
-				self.dtree = DecisionTreeClassifier(
-					criterion=criterion,
-					max_depth=max_depth,
-					min_samples_split=min_samples_split,
-					min_samples_leaf=min_samples_leaf,
-				)
-				self.dtree.fit(X_train, y_train)
-				pickle_to_file(f"{pkl_stored_at}", self.dtree)
-			else:
-				with open(Path(f"./.cache/{pkl_stored_at}.pkl"), "rb") as file:
-					self.dtree = pickle.load(file)
-			sklearn.tree.plot_tree(self.dtree)
-			plt.savefig(Path(f"./.cache/graphics/{pkl_stored_at}.svg"))
-			return [
-				self.dtree.score(X_train, y_train),
-				self.dtree.score(X_test, y_test)
-				if (X_test is not None and y_test is not None)
-				else 0,
-				[f"./.cache/graphics/{pkl_stored_at}.svg"],
-			]
+			max_depth = int(classifier[2])
+			min_samples_leaf = int(classifier[3])
+			min_samples_split = int(classifier[4])
+			pkl_stored_at = f"dtree_{criterion}_{max_depth}_{min_samples_leaf}_{min_samples_split}"
+			clfer = DecisionTreeClassifier(
+				criterion=criterion,
+				max_depth=max_depth,
+				min_samples_split=min_samples_split,
+				min_samples_leaf=min_samples_leaf,
+			)
 		elif classifier[0] == 1:
 			# Naive Bayes
-			pass
+			nb_type = classifier[1]
+			alpha = float(classifier[2])
+			pkl_stored_at = f"nb_{nb_type}_{alpha}"
+			if nb_type == "multinomial":
+				clfer = MultinomialNB(alpha=alpha)
+			elif nb_type == "complement":
+				clfer = ComplementNB(alpha=alpha)
 		elif classifier[0] == 2:
 			# k-Nearest-Neighbours
-			n_neighbors = classifier[1]
+			n_neighbors = int(classifier[1])
 			weights = classifier[2]
-			power = classifier[3]
+			power = int(classifier[3])
 			pkl_stored_at = f"knn_{n_neighbors}_{weights}_{power}"
-			if train_anew or not Path(f"./.cache/{pkl_stored_at}.pkl").is_file():
-				self.knn = KNeighborsClassifier(
-					n_neighbors=n_neighbors, weights=weights, p=power, n_jobs=-1
-				)
-				self.knn.fit(X_train, y_train)
-				pickle_to_file(f"{pkl_stored_at}", self.knn)
-			else:
-				with open(Path(f"./.cache/{pkl_stored_at}.pkl"), "rb") as file:
-					self.knn = pickle.load(file)
-			return [
-				0,#self.knn.score(X_train, y_train),
-				self.knn.score(X_test, y_test)
-				if (X_test is not None and y_test is not None)
-				else 0,
-				[],
-			]
+			clfer = KNeighborsClassifier(
+				n_neighbors=n_neighbors, weights=weights, p=power, n_jobs=-1
+			)
 		elif classifier[0] == 3:
 			# SVM
-			pass
+			c = float(classifier[1])
+			svm_type = classifier[2]
+			degree = int(classifier[3])
+			pkl_stored_at = f"svm_{svm_type}_{c}"
+			if svm_type == "linear":
+				clfer = SVC(kernel='linear',C=c)
+			elif svm_type == "poly":
+				pkl_stored_at = f"svm_{svm_type}_{c}_{degree}"
+				clfer = SVC(kernel='poly',C=c,degree=degree)
+			elif svm_type == "rbf":
+				clfer = SVC(kernel="rbf", C=c)
+		
+		if train_anew or not Path(f"./.cache/{pkl_stored_at}.pkl").is_file():
+			clfer.fit(X_train, y_train)
+			pickle_to_file(f"{pkl_stored_at}", clfer)
+		else:
+			with open(Path(f"./.cache/{pkl_stored_at}.pkl"), "rb") as file:
+				clfer = pickle.load(file)
+		if classifier[0] == 0:
+			self.dtree = clfer
+			sklearn.tree.plot_tree(clfer)
+			plt.savefig(Path(f"./.cache/graphics/{pkl_stored_at}.svg"))
+			graphics.append(f"./.cache/graphics/{pkl_stored_at}.svg")
+		elif classifier[0] == 1:
+			self.nb = clfer
+		elif classifier[0] == 2:
+			self.knn = clfer
+		elif classifier[0] == 3:
+			self.svm = clfer
+
+		return [
+			clfer.score(X_train, y_train) if score_res else 0,
+			clfer.score(X_test, y_test)
+			if (X_test is not None and y_test is not None and score_res)
+			else 0,
+			graphics,
+		]
 
 	def predict(self, title, text, classifiers=[0]):
 		df = pd.DataFrame(data={"title": [title], "text": [text]})
@@ -203,16 +218,18 @@ def create_classifiers():
 	combined_data = fake_data + true_data
 	# Invoke the processing pipeline to do NLP for us
 	combined_data.process_to_x()
-	# print(combined_data._nlp_x)
-	# print(combined_data._nlp_x.shape)
-	# with pd.option_context("display.max_columns", 20):
-	# 	print(combined_data._nlp_x.head(10))
 	combined_data.preprocess(combined_data._nlp_x)
 	print("DTREE",combined_data.train(
-		classifier=(0, "entropy", 4, 200), train_anew=False, percent_for_test=0
+		classifier=(0, "entropy", 4, 200, 2000), train_anew=False, percent_for_test=0
 	))
 	print("KNN",combined_data.train(
 		classifier=(2, 20, "uniform", 2), train_anew=False, percent_for_test=0
+	))
+	print("NB",combined_data.train(
+		classifier=(1, "multinomial", 0.5), train_anew=False, percent_for_test=0
+	))
+	print("SVM",combined_data.train(
+		classifier=(3, 1, "linear", 2), train_anew=False, percent_for_test=0
 	))
 	return combined_data
 

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { Icon } from "@steeze-ui/svelte-icon";
 	import { Search, EmojiSad, X, Cog } from "@steeze-ui/heroicons";
+	import { onMount } from "svelte";
 
 	let request_url = "",
 		disabled = false,
-		modal = 52,
 		hidden = true,
 		left_focus = false;
 
@@ -23,7 +23,7 @@
 			disp_name: "Naive Bayes",
 			options: { alpha: 0.5, type: "multinomial" },
 			active: false,
-			disabled: true
+			disabled: false
 		},
 		{
 			id: 2,
@@ -37,9 +37,9 @@
 			id: 3,
 			req_name: "svm",
 			disp_name: "Support Vector Machine",
-			options: {},
+			options: { param_c: 1, kernel: "linear", degree: 3 },
 			active: false,
-			disabled: true
+			disabled: false
 		}
 	];
 
@@ -62,7 +62,12 @@
 		});
 		if (res.ok) {
 			const res_json = await res.json();
-			window.location.href=`/results#${btoa(JSON.stringify(res_json))}`;
+			if (res_json.status == "processed")
+				window.location.href = `/results#${btoa(encodeURIComponent(JSON.stringify(res_json)))}`;
+			else if (res_json.status == "scheduled")
+				throw new Error(
+					"Your request took too long to process. It is queued to get processed, but may take some time."
+				);
 			return res_json;
 		} else if (res.status == 400) {
 			throw new Error((await res.json()).message);
@@ -75,6 +80,23 @@
 	function handle_new_req() {
 		promise = get_result();
 	}
+	onMount(() => {
+		Array.from(document.querySelectorAll("input[type=number]")).forEach((val, indx, arr) => {
+			val.addEventListener("change", (e) => {
+				const min = Number(e.target.getAttribute("min"));
+				const max = Number(e.target.getAttribute("max"));
+				const step = Number(e.target.getAttribute("step"));
+				if (e.target.value < min) {
+					e.target.value = min;
+				} else if (e.target.value > max) {
+					e.target.value = max;
+				}
+				if (e.target.value % step != 0) {
+					e.target.value -= e.target.value % step;
+				}
+			});
+		});
+	});
 </script>
 
 <label class="relative text-gray-400 focus-within:text-gray-800 block mx-auto w-5/6 md:w-2/3">
@@ -90,7 +112,7 @@
 			left_focus = true;
 		}}
 		placeholder="Enter a news article URL..."
-		class="form-input text-lg px-8 h-14 rounded-xl appearance-none w-full focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 placeholder:italic placeholder:text-slate-400 focus:placeholder:text-gray-600" />
+		class="form-input text-lg focus:bg-white bg-slate-50 px-8 h-14 rounded-xl appearance-none w-full focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 placeholder:italic placeholder:text-slate-400 focus:placeholder:text-gray-600" />
 	<Icon
 		src={Search}
 		theme="solid"
@@ -98,22 +120,20 @@
 </label>
 
 <div
-	class:hidden
 	tabindex="-1"
 	aria-hidden={hidden}
-	class="bg-slate-900/10 overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 transition-opacity duration-700 opacity-{Math.floor(
-		-1.92307692 * modal + 100
-	)} z-50 w-full md:inset-0 h-modal md:h-full justify-center items-center"
+	class="bg-slate-900/10 overflow-clip fixed top-0 right-0 left-0 visible translate-x-0 transition-all duration-700 {hidden
+		? 'opacity-0 invisible'
+		: 'opacity-100'} z-50 w-full md:inset-0 h-full justify-center items-center"
 	on:click|self={() => {
-		modal = 52;
-		setTimeout(() => {
-			hidden = true;
-		}, 700);
+		hidden = true;
 	}}>
 	<div
-		class="relative p-4 mx-auto mt-16 will-change-transform transition-transform translate-y-{modal} duration-1000 w-full sm:max-w-md lg:max-w-2xl h-full md:h-auto">
-		<div class="relative px-6 py-6 lg:px-8 xl:py-8 bg-white rounded-lg shadow dark:bg-gray-700">
-			<div class="flex justify-end mb-4">
+		class="relative p-4 mx-auto mt-6 will-change-transform translate-x-0 transition-transform {hidden
+			? 'translate-y-52'
+			: 'translate-y-0'} duration-1000 w-full sm:max-w-md lg:max-w-2xl lg:h-auto">
+		<div class="relative bg-white rounded-2xl shadow dark:bg-gray-700">
+			<div class="px-6 pt-6 flex justify-end mb-4">
 				<h3 class="text-xl font-medium text-gray-900 dark:text-white w-fit">
 					Modify machine learning settings
 				</h3>
@@ -121,23 +141,21 @@
 					type="button"
 					class="w-8 h-8 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-800 dark:hover:text-white"
 					on:click={() => {
-						modal = 52;
-						setTimeout(() => {
-							hidden = true;
-						}, 700);
+						hidden = true;
 					}}>
 					<Icon src={X} class="h-5 w-5" />
 				</button>
 			</div>
-			<form class="mb-4 space-y-6" action="#">
-				<div class="grid grid-cols-1 lg:grid-cols-2 gap-2">
+			<form class="space-y-6" action="#">
+				<div
+					class="grid grid-cols-1 lg:grid-cols-2 gap-2 h-52 overflow-y-auto md:h-96 lg:h-auto px-6 pb-6">
 					{#each classifiers as cfer (cfer.id)}
-						<div class:opacity-40={cfer.disabled} class="p-4 rounded-xl shadow-lg">
+						<div class:opacity-40={cfer.disabled} class="p-4 relative rounded-xl shadow-lg">
 							<label class="text-gray-600 dark:text-gray-200 text-lg select-none">
 								<input
 									disabled={cfer.disabled}
 									type="checkbox"
-									class="form-checkbox text-rose-600 dark:text-sky-600 appearance-none rounded-full h-6 w-6
+									class="form-checkbox text-rose-600 ring-rose-600/30 dark:ring-sky-600/30  dark:text-sky-600 appearance-none rounded-full h-6 w-6
 									disabled:cursor-not-allowed mr-1 hover:ring-4"
 									value=""
 									bind:checked={cfer.active} />
@@ -146,13 +164,13 @@
 							<div class="relative grid grid-cols-1 text-gray-500 dark:text-gray-300 text-sm">
 								<div
 									class:hidden={cfer.active}
-									class="z-60 w-full h-full bg-slate-600/10 dark:bg-slate-900/30 blur-2xl absolute" />
+									class="z-60 w-full h-full blur-2xl bg-zinc-600/20 dark:bg-zinc-900/30 absolute" />
 								{#if cfer.id == 0}
 									<label for="dtree_criterion"
 										>Impurity criterion
 										<select
 											bind:value={classifiers[0]["options"]["criterion"]}
-											class="text-xs w-24 inline-block rounded-lg"
+											class="block text-xs w-32 rounded-lg dark:text-slate-700"
 											name="dtree_criterion"
 											id="dtree_criterion">
 											<option value="entropy">Entropy</option>
@@ -164,14 +182,20 @@
 										<input
 											bind:value={classifiers[0]["options"]["max_depth"]}
 											type="number"
-											class="text-xs rounded-lg w-20" />
+											min="5"
+											max="50"
+											step="5"
+											class=" block text-xs rounded-lg w-20 dark:text-slate-700" />
 									</label>
 									<label class="py-1">
 										Minimum samples at leaf node
 										<input
 											bind:value={classifiers[0]["options"]["min_samples_leaf"]}
 											type="number"
-											class="text-xs rounded-lg w-20" />
+											min="500"
+											max="5000"
+											step="500"
+											class="block text-xs rounded-lg w-20 dark:text-slate-700" />
 									</label>
 								{/if}
 								{#if cfer.id == 1}
@@ -180,13 +204,16 @@
 										<input
 											bind:value={classifiers[1]["options"]["alpha"]}
 											type="number"
-											class="text-xs rounded-lg w-20" />
+											min="0"
+											max="1"
+											step="0.1"
+											class="block text-xs rounded-lg w-20 dark:text-slate-700" />
 									</label>
 									<label for="naive_bayes_type"
 										>Naive Bayes imlementation
 										<select
 											bind:value={classifiers[1]["options"]["type"]}
-											class="text-xs w-24 inline-block rounded-lg"
+											class="text-xs w-32 block rounded-lg dark:text-slate-700"
 											name="naive_bayes_type"
 											id="naive_bayes_type">
 											<option value="complement">Complement</option>
@@ -200,13 +227,16 @@
 										<input
 											bind:value={classifiers[2]["options"]["k_neighbours"]}
 											type="number"
-											class="text-xs rounded-lg w-20" />
+											min="5"
+											max="100"
+											step="5"
+											class="text-xs block rounded-lg w-20 dark:text-slate-700" />
 									</label>
 									<label for="knn_criterion"
 										>Weight criterion
 										<select
 											bind:value={classifiers[2]["options"]["weight"]}
-											class="text-xs w-24 inline-block rounded-lg"
+											class="text-xs w-32 block rounded-lg dark:text-slate-700"
 											name="knn_criterion"
 											id="knn_criterion">
 											<option value="uniform">Uniform</option>
@@ -218,7 +248,47 @@
 										<input
 											bind:value={classifiers[2]["options"]["power"]}
 											type="number"
-											class="text-xs rounded-lg w-20" />
+											min="1"
+											max="4"
+											step="1"
+											class="text-xs block rounded-lg w-20 dark:text-slate-700" />
+									</label>
+								{/if}
+								{#if cfer.id == 3}
+									<label class="py-1">
+										Parameter C
+										<input
+											bind:value={classifiers[3]["options"]["param_c"]}
+											type="number"
+											min="0"
+											max="15"
+											step="0.5"
+											class="text-xs block rounded-lg w-20 dark:text-slate-700" />
+									</label>
+									<label for="knn_criterion"
+										>Kernel
+										<select
+											bind:value={classifiers[3]["options"]["kernel"]}
+											class="text-xs w-32 block rounded-lg dark:text-slate-700"
+											name="knn_criterion"
+											id="knn_criterion">
+											<option value="linear">Linear</option>
+											<option value="poly">Polynomial</option>
+											<option value="rbf">RBF</option>
+										</select>
+									</label>
+									<label
+										class="py-1 {classifiers[3]['options']['kernel'] == 'poly'
+											? 'visible'
+											: 'invisible'}">
+										Degree
+										<input
+											bind:value={classifiers[3]["options"]["degree"]}
+											type="number"
+											min="1"
+											max="5"
+											step="1"
+											class="text-xs block rounded-lg w-20 dark:text-slate-700" />
 									</label>
 								{/if}
 							</div>
@@ -244,9 +314,6 @@
 		type="button"
 		on:click={() => {
 			hidden = false;
-			setTimeout(() => {
-				modal = 0;
-			}, 50);
 		}}>
 		<Icon src={Cog} theme="solid" class="h-8" />
 	</button>
@@ -301,4 +368,3 @@
 		</div>
 	</div>
 {/await}
-<br class="translate-y-52 opacity-0 opacity-100" />

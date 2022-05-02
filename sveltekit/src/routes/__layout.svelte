@@ -1,16 +1,16 @@
 <script>
 	import "../app.css";
-	import "flowbite/dist/flowbite.css";
 	import { Icon } from "@steeze-ui/svelte-icon";
 	import { Moon, Sun } from "@steeze-ui/heroicons";
 	import { Code } from "@steeze-ui/iconic-free";
+	import { browser } from "$app/env"
 
 	let light_visible;
 
 	// Change the icons inside the button based on previous settings
-	if (
+	if ( browser &&
 		localStorage.getItem("color-theme") === "dark" ||
-		(!("color-theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)
+		(browser && !("color-theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)
 	)
 		light_visible = true;
 	else light_visible = false;
@@ -18,9 +18,8 @@
 	function toggle_dark_mode() {
 		// toggle icons inside button
 		light_visible = light_visible ? false : true;
-
 		// if set via local storage previously
-		if (localStorage.getItem("color-theme")) {
+		if (browser && localStorage.getItem("color-theme")) {
 			if (localStorage.getItem("color-theme") === "light") {
 				document.documentElement.classList.add("dark");
 				localStorage.setItem("color-theme", "dark");
@@ -45,11 +44,6 @@
 <svelte:head>
 	<title>is it real.ml</title>
     <meta name="description" content="Check if an article is real using machine learning models — By Yaseen AlMannaee" />
-	<link rel="preconnect" href="https://fonts.googleapis.com" />
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-	<link
-		href="https://fonts.googleapis.com/css2?family=Lemon&display=swap"
-		rel="stylesheet" />
 </svelte:head>
 
 <div class="flex flex-col h-screen justify-between">
@@ -69,6 +63,7 @@
 		</button>
 		<a
 			href="https://www.github.com/y-almannaee/is-it-real"
+			target="_blank"
 			class="text-slate-900 dark:text-slate-50 hover:bg-gray-100 
 		dark:hover:bg-gray-700 rounded-lg text-sm p-1px absolute right-11 top-2"
 			><Icon src={Code} theme="solid" class="h-8" />
