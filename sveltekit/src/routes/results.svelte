@@ -42,7 +42,7 @@
 				id: 3,
 				req_name: "svm",
 				disp_name: "Support Vector Machine",
-				options: {},
+				options: { param_c: 1, kernel: "linear", degree: 3 },
 				active: true,
 				disabled: true
 			}
@@ -108,7 +108,11 @@
 										<p class="capitalize">{cfer.options.weight}</p>
 										<p>Power: {cfer.options.power}</p>
 									{:else if cfer.id === 3}
-										<!--SVM-->
+										<p>C: {cfer.options.param_c}</p>
+										<p class="capitalize">{cfer.options.kernel}</p>
+										{#if cfer.options.kernel == "poly"}
+										<p>Degree: {cfer.options.degree}</p>
+										{/if}
 									{/if}
 								</div>
 							</div>
